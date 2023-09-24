@@ -41,8 +41,6 @@ async def add_artist(artist: Artist) -> JSONResponse:
     )
 
 
-# TODO: Add a route that updates an artist based on their id
-
 @app.post("/artist/add-song")
 async def add_song(id: str, year_of_release: str, title: str) -> JSONResponse:
     artist = is_added(id)
@@ -57,6 +55,23 @@ async def add_song(id: str, year_of_release: str, title: str) -> JSONResponse:
     )
 
 
+@app.put("/artist/update")
+async def update_artist(id: str, name: str = None, age: int = None, music_genre: str = None,
+                        is_active: bool = True) -> JSONResponse:
+    fetched_data: dict = {
+        "name": name, "age": age, "music_genre": music_genre, "is_active": is_active
+    }
+
+    is_added(id).__dict__.update({
+        key: value for (key, value) in fetched_data.items() if value is not None
+    })
+
+    return JSONResponse(
+        status_code=200,
+        content="Song successfully updated!"
+    )
+
+
 @app.delete("/artist/delete")
 async def delete_artist(id: str) -> JSONResponse:
     if is_added(id):
@@ -66,3 +81,22 @@ async def delete_artist(id: str) -> JSONResponse:
             status_code=200,
             content="Artist successfully deleted!"
         )
+
+
+@app.delete("/artist/delete-song")
+async def delete_song(id: str, year_of_release: str, title: str) -> JSONResponse:
+    artist = is_added(id)
+    songs: list = artist.releases[year_of_release]
+
+    if title not in songs:
+        raise HTTPException(status_code=404, detail=f"{title} is not published yet!")
+
+    # Removing the song and deleting the key if the list of songs is empty
+    artist.releases[year_of_release].remove(title)
+    if not artist.releases[year_of_release]:
+        del artist.releases[year_of_release]
+
+    return JSONResponse(
+        status_code=200,
+        content="Song successfully deleted!"
+    )
